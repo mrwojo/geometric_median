@@ -4,11 +4,12 @@ from scipy.optimize import minimize
 from scipy.spatial.distance import cdist
 
 
-def geometric_median(points, method='minimize', options={}):
+def geometric_median(points, method='auto', options={}):
     """
     Calculates the geometric median of an array of points.
 
     method specifies which algorithm to use:
+        * 'auto' -- uses a heuristic to pick an algorithm
         * 'minimize' -- scipy.optimize the sum of distances
         * 'weiszfeld' -- Weiszfeld's algorithm
     """
@@ -20,6 +21,13 @@ def geometric_median(points, method='minimize', options={}):
         # Did the user intend a single 2D point or two scalars?
         # Use np.median if you meant the latter.
         raise ValueError("Expected 2D array")
+
+    if method == 'auto':
+        if points.shape[1] > 2:
+            # weiszfeld tends to converge faster in higher dimensions
+            method = 'weiszfeld'
+        else:
+            method = 'minimize'
 
     return _methods[method](points, options)
 
@@ -36,7 +44,7 @@ def minimize_method(points, options={}):
     # initial guess: centroid
     centroid = points.mean(axis=0)
 
-    optimize_result = minimize(aggregate_distance, centroid)
+    optimize_result = minimize(aggregate_distance, centroid, method='COBYLA')
 
     return optimize_result.x
 
